@@ -1,0 +1,117 @@
+Để không bị "vibe code" và đảm bảo tiến độ, các dự án phần mềm thường áp dụng chiến lược: Xác định các Luồng cốt lõi trước, sau đó bóc tách luồng đó thành các Chức năng nhỏ để code song song.
+
+Bước 1: Vẽ ra các Luồng chính (User Flow)
+Trước khi code, nhóm phải thống nhất được các luồng đi cơ bản nhất của ứng dụng. Đối với đồ án môn học, đừng tham làm quá nhiều luồng phụ, hãy tập trung vào 3-4 luồng chính để ăn điểm với hội đồng.
+
+Ví dụ Luồng Mua Hàng: Khách chọn món -> Thêm giỏ hàng -> Chọn mã giảm giá -> Bấm thanh toán -> Nhận hóa đơn.
+
+Bước 2: Bẻ nhỏ Luồng thành các Chức năng (Features) và code theo cuốn chiếu
+Từ luồng trên, bạn bắt đầu rã nó ra thành các task chức năng nhỏ hơn và phát triển theo kiểu cuốn chiếu. Xong luồng nào, dứt điểm luồng đó.
+
+Hãy xem cách phân rã một Luồng xác thực (Authentication Flow) làm ví dụ:
+
+Thứ tự ưu tiên,Tên Chức năng (Feature),Việc của Backend (BE),Việc của Frontend (FE)
+Giai đoạn 1,Login (Cốt lõi),"Viết API nhận user/pass, check DB, trả về JWT Token.","Dựng form Login, bấm nút thì gọi API, lưu Token vào LocalStorage."
+Giai đoạn 2,Logout & Bảo mật,Viết API xóa session hoặc blacklist token (nếu cần).,"Xóa Token ở LocalStorage, đá user về trang Login."
+Giai đoạn 3,Register (Mở rộng),"Viết API tạo user mới, check trùng email.","Dựng form Đăng ký, validate dữ liệu đầu vào."
+
+Đúc kết cho nhóm của bạn:
+Họp nhóm và chốt Luồng trước: Ghi rõ ra file Excel hoặc Trello: "Tuần này nhóm mình sẽ thông Luồng Đăng nhập và Luồng Xem danh sách sản phẩm".
+Chia Task theo chức năng nhỏ: Giao cho bạn A làm API Login, bạn B làm UI Login.
+Tích hợp (Integration) ngay khi xong: Ngay khi bạn A và B xong task, phải ráp lại để test thử xem đi hết được cái Luồng đó chưa. Nếu chạy mượt, sang luồng tiếp theo. Như vậy code tới đâu chắc tới đó, không bao giờ sợ bị mất phương hướng hay rơi vào "vibe code" nữa.
+
+
+
+Quy tắc cốt lõi: BE phải là người định hình dòng chảy dữ liệu
+FE chỉ là người "bọc cái vỏ" lên logic của bạn. Vì vậy, trước khi gõ bất kỳ dòng code BE nào, bạn phải làm 3 bước này với FE:
+
+Thống nhất State (Trạng thái) của luồng: Bộ dữ liệu cần truyền qua lại giữa hai bên là gì?
+
+Thiết kế API Endpoint rõ ràng: URL là gì? Method (GET/POST/PUT/DELETE) là gì?
+
+Thống nhất cấu trúc Response (JSON): Cả khi thành công và thất bại.
+
+Cách áp dụng vào từng Flow cụ thể của bạn:
+Flow 1 & 2: Check-in và Check-out (Luồng cơ bản)
+Tư duy hợp tác: FE sẽ có một giao diện (hoặc một thiết bị quét/mô phỏng quét mã/quét thẻ). Khi thẻ được quét, FE chỉ cần gửi lên mã thẻ. BE sẽ lo toàn bộ logic còn lại (kiểm tra thẻ hợp lệ, lưu thời gian, chụp ảnh, tính tiền...).
+
+Thiết kế API chung:
+
+POST /api/parking/check-in: Body gửi lên { "cardId": "12345" }. BE kiểm tra, nếu hợp lệ trả về mã 200 cùng thông tin xe. Nếu thẻ bị khóa, trả về mã 400 kèm message: { "error": "CARD_LOCKED", "message": "Thẻ này đã bị khóa!" } để FE hiển thị lên màn hình.
+
+POST /api/parking/check-out: Body gửi { "cardId": "12345" }. BE tính toán thời gian, số tiền phải trả và trả về cho FE hiển thị: { "amount": 20000, "durationMinutes": 120 }.
+
+Flow 3: Thanh toán nhanh trong giờ cao điểm (Luồng đặc biệt)
+Tư duy hợp tác: Giờ cao điểm cần giảm thiểu thời gian check-out. FE cần một cơ chế thao tác cực nhanh (Ví dụ: quét mã QR ví điện tử để trừ tiền tự động hoặc giảm bớt các bước xác nhận).
+
+Hợp tác BE-FE: Bạn (BE) phải cung cấp một API bất đồng bộ hoặc tối ưu hóa tốc độ xử lý Database (dùng cache, indexing).
+
+Bạn cần nói với FE: "API thanh toán nhanh này tớ đã tối ưu, cậu chỉ cần gửi cardId và paymentMethod. Nếu thành công, tớ sẽ trả về ngay trong vòng 200ms để cậu mở barrier cho xe đi luôn, không bắt user đợi."
+
+Flow 4: Đăng ký thành viên VIP
+Tư duy hợp tác: Đây là luồng CRUD (Create-Read-Update-Delete) kết hợp điều kiện nâng cấp.
+
+Hợp tác BE-FE: Bạn cần cung cấp cho FE các API validation trước khi họ gửi data lên.
+
+Ví dụ: Khi user gõ số điện thoại đăng ký VIP, FE sẽ gọi GET /api/members/check-phone?phone=090.... Bạn check dưới DB xem số này đã là VIP chưa rồi báo về true/false. Việc này giúp FE chặn lỗi ngay từ giao diện, tránh việc user điền cả đống form rồi bấm Submit mới báo lỗi.
+
+Flow 5: Xử lý mất thẻ (Luồng rủi ro/Nghiệp vụ đặc biệt)
+Tư duy hợp tác: Khi mất thẻ, luồng này cần tính bảo mật cao và hủy thẻ cũ, cấp thẻ mới hoặc tìm xe bằng biển số.
+
+Hợp tác BE-FE: Bạn phải thiết kế API dạng Transaction (giao dịch chuỗi).
+
+POST /api/cards/report-lost: Khóa thẻ cũ ngay lập tức.
+
+POST /api/cards/issue-replacement: Liên kết thông tin xe của thẻ cũ sang thẻ mới. Bạn phải tài liệu hóa rõ ràng cho FE biết: Luồng này gồm 2 bước riêng biệt hay 1 bước gộp để FE dựng giao diện các nút bấm cho chính xác.
+
+Kế hoạch hành động ngay cho bạn (Một BE chưa biết cách kết nối với FE):
+Để kỳ tới không bị "tạch" hội đồng, hãy biến mình thành một BE chuyên nghiệp bằng cách làm các việc sau:
+
+
+[BƯỚC 1: Cài đặt Postman / Swagger]
+       │
+       ▼
+[BƯỚC 2: Ngồi lại với FE viết API Contract]
+(Chốt rõ: URL, Request Body, Response JSON khi chạy đúng và khi lỗi)
+       │
+       ▼
+[BƯỚC 3: BE xuất file Postman Collection / Swagger Documentation gửi cho FE]
+       │
+       ▼
+[BƯỚC 4: FE dùng file đó làm Mock Data để code UI | BE tập trung code Logic DB]
+       │
+       ▼
+[BƯỚC 5: Cuối tuần ráp nối (Integration) - BE bật server, FE call thử API thật]
+
+
+
+Bẻ nhỏ luồng Login (Đăng nhập) là một bài tập nhập môn cực kỳ tốt để bạn làm quen với tư duy thiết kế hệ thống chuyên nghiệp. Đối với Backend (BE), thay vì cắm đầu vào viết một hàm login() khổng lồ chứa mọi thứ, bạn sẽ rã nó ra thành các nhiệm vụ nhỏ (Sub-tasks) và thống nhất từng bước với Frontend (FE).Dưới đây là cách bẻ nhỏ luồng Login theo chuẩn để bạn phối hợp mượt mà với FE, không sợ bị lệch pha:1. Thiết kế Hợp đồng API (API Contract) trước khi codeTrước khi gõ code, bạn (BE) tạo sẵn một file tài liệu (hoặc tạo mock trên Postman) và gửi cho FE cấu trúc sau:Endpoint: POST /api/auth/loginRequest Body (FE gửi lên):JSON{
+  "username": "phuoc123",
+  "password": "mật_khẩu_ở_đây"
+}
+Response khi Thành công (Mã 200 OK - BE trả về):JSON{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsIn...", 
+  "role": "MEMBER" 
+}
+Response khi Thất bại (Mã 400 Bad Request hoặc 401 Unauthorized):JSON{
+  "errorCode": "INVALID_CREDENTIALS",
+  "message": "Tên đăng nhập hoặc mật khẩu không chính xác."
+}
+2. Phân rã công việc chi tiết (Task Breakdown)Khi đã chốt xong "hợp đồng" trên, bạn và FE sẽ chia việc ra làm song song thành các bước rất nhỏ:Phía Backend (Việc của bạn)Bạn sẽ bẻ nhỏ code của mình thành các tầng logic (nếu dùng Java Web/Spring Boot thì chia theo Controller - Service - Repository):Task BE-1: Validate dữ liệu đầu vào (Input Validation)Logic: Kiểm tra xem FE có gửi trống trường nào không. Nếu username hoặc password bị rỗng, trả về ngay lập tức mã 400 Bad Request kèm thông báo lỗi. Chưa cần đụng vào Database (DB).Task BE-2: Kiểm tra tài khoản trong DatabaseLogic: Viết câu lệnh truy vấn (Query) xuống DB tìm User theo username. Nếu không tìm thấy -> Trả về mã 401 Unauthorized.Task BE-3: Xác thực mật khẩu (Password Verification)Logic: Lấy mật khẩu người dùng vừa nhập, so sánh với mật khẩu đã mã hóa (BCrypt/MD5) trong DB. Nếu không khớp -> Trả về mã 401 Unauthorized.Task BE-4: Tạo Token (JWT) và trả về kết quảLogic: Nếu mọi thứ đúng, BE sẽ tạo ra một chuỗi JWT Token (chứa thông tin user và quyền hạn/role). Trả về mã 200 OK kèm Token này cho FE.Phía Frontend (Việc của bạn FE)Trong lúc bạn làm BE, bạn FE cũng tự nhìn vào API Contract để làm việc của mình:Task FE-1: Dựng giao diện Form Login (Ô nhập, Nút bấm).Task FE-2: Validate giao diện (Ví dụ: Nếu chưa gõ chữ nào mà bấm nút Login thì hiện cảnh báo đỏ, không cho bấm gửi lên BE để giảm tải cho server).Task FE-3: Cài đặt hàm gọi API (fetch hoặc axios) truyền đúng username/password lên URL của BE.Task FE-4: Xử lý kết quả trả về:Nếu BE trả về 200: Lưu token vào LocalStorage/SessionStorage để dùng cho các luồng sau (như Check-in, Mất thẻ) và chuyển hướng (Redirect) user vào trang Dashboard.Nếu BE trả về 401/400: Hiển thị câu message lỗi màu đỏ lên màn hình cho user thấy.3. Cách hai bên Tích hợp (Integration) để chạy thửKhi cả hai đã làm xong các task nhỏ của mình, hai bạn sẽ ngồi lại ráp nối:Bạn (BE) chạy server ở local (ví dụ: localhost:8080).Bạn FE mở giao diện lên, gõ tài khoản bậy bạ bấm Login $\rightarrow$ Kiểm tra xem màn hình FE có hiện đúng câu lỗi mà BE trả về không.FE gõ tài khoản đúng $\rightarrow$ Kiểm tra xem FE có nhận được Token không và có chuyển sang trang tiếp theo được không.Bí kíp xóa sổ "vibe code": Nếu gõ tài khoản đúng mà FE vẫn báo lỗi, hai bạn không được đoán mò. Hãy bật F12 trên trình duyệt của FE, vào tab Network, bấm vào API /login xem dòng Response (Dữ liệu BE trả về thực tế) có giống y hệt cái JSON hai bên đã chốt ở Bước 1 không. Lệch một ký tự (ví dụ BE viết error_code nhưng Contract chốt là errorCode) là lỗi ngay lập tức. Sửa đúng chỗ đó là xong!Bằng cách bẻ nhỏ như thế này, nếu luồng Login bị lỗi, bạn sẽ biết ngay nó đang kẹt ở Task BE-2 (lỗi DB) hay Task FE-4 (FE không lưu được token), chứ không phải hoang mang nhìn một đống code rối nùi nữa.
+
+
+Giai đoạn 1: Chuẩn bị & Thiết kế (Tuyệt đối KHÔNG gõ code)Đây là giai đoạn cốt lõi để hai bên tìm được tiếng nói chung. Nếu bỏ qua giai đoạn này, bạn sẽ ngay lập tức quay lại vết xe đổ "vibe code".Bước 1: Họp chốt "Kịch bản" (User Story / Flow)Cả BE và FE ngồi lại vẽ ra giấy hoặc Figma luồng đi của tính năng.Ví dụ Luồng Check-in: Bảo vệ bấm nút "Quét thẻ" $\rightarrow$ Hệ thống nhận diện $\rightarrow$ Màn hình hiển thị màu xanh (Hợp lệ) hoặc màu đỏ (Lỗi).Mục tiêu: Cả BE và FE đều phải có chung một hình ảnh trong đầu về cách tính năng này hoạt động.Bước 2: Thiết kế "Hợp đồng API" (API Contract) trên PostmanThay vì code, bạn (BE) hãy mở Postman lên và tạo một Collection (Thư mục chứa các API giả lập). Bạn tạo các request trống và định nghĩa rõ:URL: /api/parking/check-inMethod: POSTDữ liệu gửi lên (Request Body): Thống nhất xem FE truyền chuỗi string hay object.Dữ liệu trả về (Response JSON): Định nghĩa sẵn mẫu JSON khi thành công và khi thất bại.Hành động tương tác: Bạn xuất (Export) file Collection này từ Postman hoặc gửi link share cho FE. Bạn FE sẽ nhìn vào đây để biết mình cần chuẩn bị những gì.Giai đoạn 2: Code song song (Độc lập nhưng chung hướng)Khi đã có "Hợp đồng API", BE và FE có thể tự về nhà mở máy lên code mà không cần phải đợi nhau, không sợ bị nghẽn tiến độ.Góc nhìn của bạn (Backend - BE)Nhiệm vụ của bạn là hiện thực hóa cái "Hợp đồng" trên Postman thành code thật chạy với Database.Bước 1: Tạo Endpoint & Mock trước: Viết một hàm Controller hứng URL /api/parking/check-in. Chưa cần viết logic gì phức tạp, chỉ cần cấu hình để khi FE gọi vào, nó trả về đúng cái chuỗi JSON giả lập đã chốt.Bước 2: Viết logic xử lý kết nối Database: Viết các tầng Service, Repository để truy vấn DB (kiểm tra thẻ, lưu lượt xe).Bước 3: Tự kiểm thử (Unit Test): Dùng Postman tự gọi vào API của chính mình xem logic chạy đúng chưa, DB có lưu đúng dữ liệu chưa.Góc nhìn của Frontend (FE)Nhiệm vụ của FE là dựng giao diện và chuẩn bị sẵn bộ khung để đón dữ liệu từ BE.Bước 1: Dựng UI/UX: Vẽ form, các nút bấm, giao diện thông báo lỗi/thành công dựa trên bản thiết kế.Bước 2: Dùng dữ liệu giả (Mock Data): Vì BE chưa làm xong logic thật, FE tự tạo một file JSON giả lập (lấy y hệt cấu trúc từ Hợp đồng API ở Giai đoạn 1) để đổ lên giao diện xem hiển thị đúng không.Bước 3: Viết sẵn hàm gọi API: Dùng axios hoặc fetch để viết sẵn hàm gọi đến URL của BE, chỉ chờ BE bật server thật lên là kích hoạt.Giai đoạn 3: Tích hợp & Kiểm thử (Hòa nhập BE - FE)Đây là lúc hai người đào hầm gặp nhau ở giữa ngọn núi.1.Bật kết nối Local:BE mở Server - FE gọi API.Bạn (BE) chạy dự án ở máy của mình (hoặc deploy lên một server chung của nhóm). Bạn FE cấu hình lại mã nguồn, thay đổi URL từ "file dữ liệu giả" sang địa chỉ IP/Localhost của BE.2.Chạy thử nghiệm (Happy Path):Kiểm tra luồng chạy đúng.Thực hiện luồng tính năng trong điều kiện hoàn hảo nhất (Ví dụ: Nhập đúng mã thẻ đang hoạt động). Xem giao diện FE có hiển thị đúng dữ liệu BE trả về từ Database không.3.Bắt lỗi thực tế qua Tab Network:Xử lý lệch pha dữ liệu.Nếu bấm nút mà không chạy, tuyệt đối không đoán mò. FE bấm F12, mở tab Network (Mạng), click vào API bị lỗi để xem: Đã gửi đúng data chưa? BE trả về mã gì (500, 404, 400)? Lệch dấu câu hay lệch tên biến nào thì sửa ngay chỗ đó.4.Kiểm thử các luồng lỗi (Edge Cases):Kiểm tra độ bền của hệ thống.Thử nghiệm nhập mã thẻ bậy bạ, thẻ đã bị mất xem BE có trả về đúng mã lỗi không và FE có hiện thông báo cảnh báo đỏ cho người dùng không. Nếu mọi thứ mượt mà, tính năng đó chính thức hoàn thành.3 Quy tắc vàng để giao tiếp hiệu quả, không "mạnh ai nấy code""Không tự ý thay đổi cấu trúc dữ liệu": Nếu bạn (BE) muốn đổi tên trường cardId thành ticketId trong Database, bạn bắt buộc phải nhắn cho FE: "Tớ mới đổi tên biến này nhé, cậu cập nhật lại bên FE nha". Tự ý đổi mà không nói là hôm sau hệ thống sập ngay.Daily Sync (Họp nhanh mỗi ngày/mỗi 2 ngày): Không cần họp dài dòng, chỉ cần nhắn tin vào nhóm chat:Hôm qua tớ làm xong cái gì?Hôm nay tớ sẽ làm cái gì?Tớ đang bị kẹt ở đâu cần trợ giúp?Tích hợp cuốn chiếu: Đừng đợi làm xong cả 5 flow rồi mới ráp. Cứ xong Flow Check-in, hai bên ngồi lại ráp nối, chạy mượt mà, ăn mừng nhẹ một cái rồi mới chuyển sang làm Flow Check-out. Code tới đâu, chắc tới đó!Áp dụng đúng quy trình này, bạn sẽ thấy tiến độ dự án đi cực kỳ rõ ràng, kiểm soát được lỗi và không bao giờ còn cảm giác hoang mang khi làm nhóm nữa.
+
+
+
+entity: Nơi chứa class ánh xạ với bảng Database.
+
+repository: Nơi chứa các hàm truy vấn Database.
+
+dto: Nơi chứa các class hứng dữ liệu từ FE gửi lên (như username, password).
+
+controller: Nơi chứa các đường dẫn API tiếp nhận request.
+
+
+Repository (Truy vấn) --> DTO (Hứng dữ liệu) (Đây là bản mà API contract hoạt động)--> Controller (Định nghĩa URL API).

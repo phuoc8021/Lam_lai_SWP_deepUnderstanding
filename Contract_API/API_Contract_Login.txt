@@ -1,0 +1,95 @@
+openapi: 3.0.3
+info:
+  title: SWP Project - Làm lại bài
+  description: Hợp đồng API cam kết giữa Frontend và Backend cho môn SWP
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local Development Server (Sau khi BE code xong)
+  - url: http://127.0.0.1:4010
+    description: Prism Mock Server (Dành cho FE chạy thử lúc đầu)
+
+paths:
+  # 1. Chức năng Đăng nhập
+  /auth/login:
+    post:
+      summary: Đăng nhập vào hệ thống
+      description: FE gửi tài khoản mật khẩu, BE kiểm tra và trả về JWT Token cùng thông tin User.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: "phuoc.th"
+                password:
+                  type: string
+                  example: "123456aA@"
+      responses:
+        '200':
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsIn..."
+                  role:
+                    type: string
+                    example: "STUDENT"
+        '401':
+          description: Sai tài khoản hoặc mật khẩu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # 2. Chức năng Đăng xuất
+  /auth/logout:
+    post:
+      summary: Đăng xuất khỏi hệ thống
+      description: FE gửi request đính kèm Bearer Token ở Header để BE thực hiện đăng xuất và vô hiệu hóa token.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Đăng xuất thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged out successfully"
+        '401':
+          description: Token không hợp lệ hoặc hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  # Định nghĩa các cấu trúc dùng chung để tái sử dụng
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Invalid username or password"
+          
+  # Định nghĩa cơ chế bảo mật bằng Bearer Token (JWT) cho API Logout và các API sau này
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
