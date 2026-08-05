@@ -1,6 +1,47 @@
+import { useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
+import { loginApi } from "../../../api/auth.api";
 
 function LoginForm() {
+
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = async (e) => {
+
+        e.preventDefault();
+
+        try {
+
+            setLoading(true);
+
+            const response = await loginApi({
+                username,
+                password
+            });
+
+            console.log("Login Success:", response);
+
+            alert("Đăng nhập thành công!");
+
+            // Bước sau sẽ lưu JWT
+            // localStorage.setItem("accessToken", response.accessToken);
+
+        } catch (error) {
+
+            console.error(error);
+
+            alert("Sai tên đăng nhập hoặc mật khẩu!");
+
+        } finally {
+
+            setLoading(false);
+
+        }
+
+    };
+
     return (
         <div className="h-100 d-flex justify-content-center align-items-center">
 
@@ -17,9 +58,9 @@ function LoginForm() {
                     Vui lòng nhập thông tin của bạn để tiếp tục quản lý hệ thống.
                 </p>
 
-                <Form>
+                <Form onSubmit={handleLogin}>
 
-                    {/* Email */}
+                    {/* Username */}
 
                     <Form.Group className="mb-3">
 
@@ -31,8 +72,10 @@ function LoginForm() {
                         </Form.Label>
 
                         <Form.Control
-                            type="email"
-                            placeholder="Nhập tên đăng nhập hoặc email"
+                            type="text"
+                            placeholder="Nhập tên đăng nhập"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                         />
 
                     </Form.Group>
@@ -66,7 +109,9 @@ function LoginForm() {
 
                             <Form.Control
                                 type="password"
-                                placeholder="Mật khẩu"
+                                placeholder="Nhập mật khẩu"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                             />
 
                         </InputGroup>
@@ -88,12 +133,11 @@ function LoginForm() {
                     <Button
                         className="w-100"
                         size="lg"
+                        type="submit"
+                        disabled={loading}
                     >
-                        Đăng nhập
+                        {loading ? "Đang đăng nhập..." : "Đăng nhập"}
                     </Button>
-
-
-
 
                     {/* Register */}
 
@@ -106,7 +150,7 @@ function LoginForm() {
 
                         <a
                             href="#"
-                            className="ms-1" x
+                            className="ms-1"
                             style={{ textDecoration: "none" }}
                         >
                             Đăng kí tài khoản

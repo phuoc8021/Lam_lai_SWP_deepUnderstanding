@@ -3,20 +3,26 @@ import { Container, Row, Col } from "react-bootstrap";
 import LeftPanel from "../components/LeftPanel";
 import LoginForm from "../components/LoginForm";
 
+import "../styles/login.css";
+
 function LoginPage() {
     return (
-        <Container fluid className="vh-100 p-0">
+        <Container fluid className="login-page p-0">
+
             <Row className="h-100 g-0">
 
-                <Col md={6}>
+                {/* Left Side */}
+                <Col xs={12} lg={5} className="left-side">
                     <LeftPanel />
                 </Col>
 
-                <Col md={6}>
+                {/* Right Side */}
+                <Col xs={12} lg={7} className="right-side">
                     <LoginForm />
                 </Col>
 
             </Row>
+
         </Container>
     );
 }

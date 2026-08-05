@@ -12,7 +12,7 @@ function LeftPanel() {
                     src={logo}
                     alt="SmartPark Logo"
                     style={{
-                        width: "140px",
+                        width: "110px",
                         height: "auto",
                     }}
                 />
