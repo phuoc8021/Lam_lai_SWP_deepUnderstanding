@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import com.example.demo.dto.LoginRequest;
 import com.example.demo.dto.LoginResponse;
+import com.example.demo.dto.RegisterRequest;
 import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
 
@@ -13,8 +14,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+
+    public AuthServiceImpl(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -50,5 +54,36 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return "Logged out successfully";
+    }
+
+    @Override
+    public void register(RegisterRequest request) {
+
+        // Kiểm tra username đã tồn tại
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new RuntimeException("Username already exists");
+        }
+
+        // Kiểm tra email đã tồn tại
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        // Tạo User mới
+        User user = new User();
+
+        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+        user.setUsername(request.getUsername());
+
+        // Chưa mã hóa password
+        user.setPassword(request.getPassword());
+
+        // Mặc định
+        user.setRole("USER");
+        user.setStatus("ACTIVE");
+
+        userRepository.save(user);
     }
 }

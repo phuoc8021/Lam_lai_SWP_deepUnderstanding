@@ -2,10 +2,10 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.LoginRequest;
 import com.example.demo.dto.LoginResponse;
-import com.example.demo.repository.UserRepository;
+import com.example.demo.dto.RegisterRequest;
+import com.example.demo.dto.RegisterResponse;
 import com.example.demo.service.AuthService;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -45,6 +45,24 @@ public class AuthController {
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+
+        try {
+
+            authService.register(request);
+
+            return ResponseEntity.ok(
+                    new RegisterResponse("Register successfully"));
+
+        } catch (RuntimeException e) {
+
+            return ResponseEntity
+                    .badRequest()
                     .body(Map.of("message", e.getMessage()));
         }
     }
