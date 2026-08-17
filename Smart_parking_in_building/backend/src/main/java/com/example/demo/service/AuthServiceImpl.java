@@ -86,4 +86,5 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
     }
+
 }
